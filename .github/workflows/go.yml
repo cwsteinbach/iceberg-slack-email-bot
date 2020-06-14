@@ -31,16 +31,7 @@ jobs:
         fi
 
     - name: Build
-      uses: thatisuday/go-cross-build@v1
-      with:
-        platforms: 'linux/amd64'
-        name: 'pinot-bot'
-        dest: 'build'
-
-    - name: Copy
-      run: |
-        cp ./build/pinot-bot-linux-amd64 ./build/pinot-bot
-        ls ./build
+      run: CGO_ENABLED=0 go build -v -tags netgo -ldflags "-extldflags '-static' -w" -o build/pinot-bot
 
     - name: Test
       run: go test -v .
