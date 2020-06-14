@@ -65,6 +65,7 @@ func main() {
 	b.Respond("daily-digest", b.DailyDigest)
 	b.Respond("ping", Pong)
 
+	b.Say("daily-digest", "Pinot bot is starting..")
 	err = b.Run()
 	if err != nil {
 		b.Logger.Fatal(err.Error())
