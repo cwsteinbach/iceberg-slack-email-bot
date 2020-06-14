@@ -31,12 +31,16 @@ jobs:
         fi
 
     - name: Build
-      run: go build -v .
+      uses: thatisuday/go-cross-build@v1
+      with:
+        platforms: 'linux/amd64'
+        name: 'pinot-bot'
+        dest: 'build'
 
     - name: Copy
       run: |
-        mkdir ./build
-        cp ./pinot-bot ./build/pinot-bot
+        cp ./build/pinot-bot-linux-amd64 ./build/pinot-bot
+        ls ./build
 
     - name: Test
       run: go test -v .
