@@ -1,7 +1,6 @@
 Pinot Bot
 ====
 ![Go](https://github.com/snleee/pinot-bot/workflows/Go/badge.svg)
-![Publish Docker](https://github.com/snleee/pinot-bot/workflows/Publish%20Docker/badge.svg) 
 
 Simple Pinot Bot for Apache Pinot Slack Workspace.
 
