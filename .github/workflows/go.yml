@@ -35,8 +35,8 @@ jobs:
 
     - name: Copy
       run: |
-        mkdir build
-        cp pinot-bot build/pinot
+        mkdir ./build
+        cp ./pinot-bot ./build/pinot-bot
 
     - name: Test
       run: go test -v .
