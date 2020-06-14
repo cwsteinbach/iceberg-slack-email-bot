@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"github.com/go-joe/cron"
+	"github.com/go-joe/http-server"
 	"github.com/go-joe/joe"
 	"github.com/go-joe/slack-adapter"
 	"log"
@@ -22,6 +24,7 @@ type Config struct {
 	From     string `yaml:"from"`
 	To       string `yaml:"to"`
 	Sendgrid string `yaml:"sendgrid"`
+	Port string `yaml:"port"`
 }
 
 func NewConfig() (*Config, error) {
@@ -31,6 +34,11 @@ func NewConfig() (*Config, error) {
 		From: os.Getenv("FROM"),
 		To: os.Getenv("TO"),
 		Sendgrid: os.Getenv("SENDGRID_TOKEN"),
+		Port: os.Getenv("PORT"),
+	}
+	log.Println(config)
+	if config.Port == "" {
+		config.Port = "80"
 	}
 	return config, nil
 }
@@ -43,6 +51,7 @@ func main() {
 	b := &PinotBot{
 		Bot: joe.New("pinot-bot",
 			slack.Adapter(config.SlackBotUserToken),
+			joehttp.Server(":" + config.Port),
 
 			// Schedule the daily digest cron job at 9:00:00 am
 			cron.ScheduleEvent("0 0 9 * * *", DailyDigestEvent{}),
@@ -52,6 +61,7 @@ func main() {
 
 	// Register event handlers
 	b.Brain.RegisterHandler(b.HandleDailyDigestEvent)
+	b.Brain.RegisterHandler(b.HandleHTTP)
 	b.Respond("daily-digest", b.DailyDigest)
 	b.Respond("ping", Pong)
 
@@ -75,4 +85,10 @@ func (b *PinotBot) DailyDigest(msg joe.Message) error {
 func Pong(msg joe.Message) error {
 	msg.Respond("PONG")
 	return nil
+}
+
+func (b *PinotBot) HandleHTTP(c context.Context, r joehttp.RequestEvent) {
+	if r.URL.Path == "/" {
+		b.Say("daily-digest", "Pinot bot is running..")
+	}
 }

@@ -7,5 +7,8 @@ FROM alpine
 # Add config file
 ADD build/pinot-bot /bin/pinot-bot
 
+# Expose port
+EXPOSE 80
+
 # Compile
 ENTRYPOINT ["pinot-bot"]
