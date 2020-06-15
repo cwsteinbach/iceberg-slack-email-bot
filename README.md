@@ -4,6 +4,7 @@ Pinot Bot
 
 Simple Pinot Bot for Apache Pinot Slack Workspace.
 
+# Build and run locally
 ```
 # Install dependencies
 $ go get -d ./...
@@ -12,9 +13,17 @@ $ go get -d ./...
 $ go run pinot-bot.go digest.go
 ```
 
+# Build docker image
 ```
 # Install gox (cross compilation tool)
 $ go get github.com/mitchellh/gox
-$ export PATH=$GOROOT/bin:$GOPATH/bin:$PATH
+
+# Add GOROOT/GOPATH to the environmental path.
+export PATH=$GOROOT/bin:$GOPATH/bin:$PATH
+
+# Run makefile script to build docker image
 $ make build
+
+# Publish docker image to docker hub
+$ make push
 ```

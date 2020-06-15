@@ -100,7 +100,7 @@ func ReplaceMentionUser(userList map[string]string, text string) string {
 
 func SendGridEmail(c *Config, subject string, htmlContent string) {
 	from := mail.NewEmail("Pinot Slack Email Digest", c.From)
-	client := sendgrid.NewSendClient(c.Sendgrid)
+	client := sendgrid.NewSendClient(c.SendgridToken)
 	toMails := strings.Split(c.To, ",")
 	for _, toMail := range toMails {
 		to := mail.NewEmail("Apache Pinot Dev", toMail)

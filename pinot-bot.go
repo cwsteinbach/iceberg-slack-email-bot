@@ -19,22 +19,22 @@ type DailyDigestEvent struct {
 }
 
 type Config struct {
-	SlackAppToken    string `yaml:"slack_app_token"`
-	SlackBotUserToken string `yaml:"slack_bot_user_token""`
-	From     string `yaml:"from"`
-	To       string `yaml:"to"`
-	Sendgrid string `yaml:"sendgrid"`
-	Port string `yaml:"port"`
+	SlackAppToken     string
+	SlackBotUserToken string
+	From              string
+	To                string
+	SendgridToken     string
+	Port              string
 }
 
 func NewConfig() (*Config, error) {
 	config := &Config{
-		SlackAppToken: os.Getenv("SLACK_APP_TOKEN"),
+		SlackAppToken:     os.Getenv("SLACK_APP_TOKEN"),
 		SlackBotUserToken: os.Getenv("SLACK_BOT_USER_TOKEN"),
-		From: os.Getenv("FROM"),
-		To: os.Getenv("TO"),
-		Sendgrid: os.Getenv("SENDGRID_TOKEN"),
-		Port: os.Getenv("PORT"),
+		From:              os.Getenv("FROM"),
+		To:                os.Getenv("TO"),
+		SendgridToken:     os.Getenv("SENDGRID_TOKEN"),
+		Port:              os.Getenv("PORT"),
 	}
 	log.Println(config)
 	if config.Port == "" {
@@ -48,14 +48,17 @@ func main() {
 	if err != nil {
 		log.Fatal("Failed to load config: ", err)
 	}
-	b := &PinotBot{
-		Bot: joe.New("pinot-bot",
-			slack.Adapter(config.SlackBotUserToken),
-			joehttp.Server(":" + config.Port),
+	modules := []joe.Module {
+		joehttp.Server(":" + config.Port),
+		// Schedule the daily digest cron job at 2:00:00 AM (UTC)
+		cron.ScheduleEvent("0 0 2 * * *", DailyDigestEvent{}),
+	}
+	if config.SlackAppToken != "" && config.SlackBotUserToken != ""  {
+		modules = append(modules, slack.Adapter(config.SlackBotUserToken))
+	}
 
-			// Schedule the daily digest cron job at 2:00:00 AM (UTC)
-			cron.ScheduleEvent("0 0 2 * * *", DailyDigestEvent{}),
-		),
+	b := &PinotBot{
+		Bot: joe.New("pinot-bot", modules...),
 		Config: config,
 	}
 
