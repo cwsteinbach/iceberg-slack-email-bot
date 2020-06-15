@@ -53,8 +53,8 @@ func main() {
 			slack.Adapter(config.SlackBotUserToken),
 			joehttp.Server(":" + config.Port),
 
-			// Schedule the daily digest cron job at 9:00:00 am
-			cron.ScheduleEvent("0 0 9 * * *", DailyDigestEvent{}),
+			// Schedule the daily digest cron job at 2:00:00 AM (UTC)
+			cron.ScheduleEvent("0 0 2 * * *", DailyDigestEvent{}),
 		),
 		Config: config,
 	}
