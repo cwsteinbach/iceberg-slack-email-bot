@@ -17,12 +17,18 @@ var re = regexp.MustCompile(`(?m)<@(\w+)>`)
 const initialNumBufSize = 24
 
 func DigestMessage() string {
+	loc, _ := time.LoadLocation("America/Los_Angeles")
 	t := time.Now()
+	t = t.In(loc)
 	title := fmt.Sprintf("Apache Pinot Daily Email Digest (%s)", t.Format("2006-01-02"))
 	return fmt.Sprintf("Daily digest sent with the title: `%s`", title)
 }
 
 func RunDailyDigest(config *Config) {
+	if config.From == "" || config.To == "" || config.SendgridToken == "" {
+		log.Println("")
+	}
+
 	api := slack.New(config.SlackAppToken)
 
 	userList, err := Users(api)
@@ -49,7 +55,6 @@ func RunDailyDigest(config *Config) {
 			continue
 		}
 
-		fmt.Println(channel)
 		ch := &slack.GetConversationHistoryParameters{
 			ChannelID: channel.ID,
 			Oldest: fmt.Sprintf("%f", float64(time.Now().Add(-24 * time.Hour).Unix())),
@@ -72,7 +77,7 @@ func RunDailyDigest(config *Config) {
 			}
 		}
 	}
-	fmt.Println(string(buffer.Bytes()))
+	log.Println(string(buffer.Bytes()))
 	t := time.Now()
 	title := fmt.Sprintf("Apache Pinot Daily Email Digest (%s)", t.Format("2006-01-02"))
 	SendGridEmail(config, title, string(buffer.Bytes()))
@@ -109,9 +114,9 @@ func SendGridEmail(c *Config, subject string, htmlContent string) {
 		if err != nil {
 			log.Println(err)
 		} else {
-			fmt.Println(response.StatusCode)
-			fmt.Println(response.Body)
-			fmt.Println(response.Headers)
+			log.Println(response.StatusCode)
+			log.Println(response.Body)
+			log.Println(response.Headers)
 		}
 	}
 }
