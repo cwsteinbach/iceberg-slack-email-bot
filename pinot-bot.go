@@ -2,12 +2,14 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github.com/go-joe/cron"
 	"github.com/go-joe/http-server"
 	"github.com/go-joe/joe"
 	"github.com/go-joe/slack-adapter"
 	"log"
 	"os"
+	"time"
 )
 
 type PinotBot struct {
@@ -67,6 +69,7 @@ func main() {
 	b.Brain.RegisterHandler(b.HandleHTTP)
 	b.Respond("daily-digest", b.DailyDigest)
 	b.Respond("ping", Pong)
+	b.Respond("time", Time)
 
 	b.Say("daily-digest", "Pinot bot is starting..")
 	err = b.Run()
@@ -83,6 +86,15 @@ func (b *PinotBot) HandleDailyDigestEvent(evt DailyDigestEvent) {
 func (b *PinotBot) DailyDigest(msg joe.Message) error {
 	RunDailyDigest(b.Config)
 	msg.Respond(DigestMessage())
+	return nil
+}
+
+func Time(msg joe.Message) error {
+	loc, _ := time.LoadLocation("America/Los_Angeles")
+	t := time.Now()
+	timeMsg := "Machine local time: `" + fmt.Sprint(t) + "`\n"
+	timeMsg += "Machine local time (in PDT): `" + fmt.Sprint(t.In(loc)) + "`"
+	msg.Respond(timeMsg)
 	return nil
 }
 

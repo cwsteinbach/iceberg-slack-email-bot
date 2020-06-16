@@ -16,12 +16,15 @@ var re = regexp.MustCompile(`(?m)<@(\w+)>`)
 
 const initialNumBufSize = 24
 
-func DigestMessage() string {
+func DigestTitle() string {
 	loc, _ := time.LoadLocation("America/Los_Angeles")
 	t := time.Now()
 	t = t.In(loc)
-	title := fmt.Sprintf("Apache Pinot Daily Email Digest (%s)", t.Format("2006-01-02"))
-	return fmt.Sprintf("Daily digest sent with the title: `%s`", title)
+	return fmt.Sprintf("Apache Pinot Daily Email Digest (%s)", t.Format("2006-01-02"))
+}
+
+func DigestMessage() string {
+	return fmt.Sprintf("Daily digest sent with the title: `%s`", DigestTitle())
 }
 
 func RunDailyDigest(config *Config) {
@@ -78,9 +81,7 @@ func RunDailyDigest(config *Config) {
 		}
 	}
 	log.Println(string(buffer.Bytes()))
-	t := time.Now()
-	title := fmt.Sprintf("Apache Pinot Daily Email Digest (%s)", t.Format("2006-01-02"))
-	SendGridEmail(config, title, string(buffer.Bytes()))
+	SendGridEmail(config, DigestTitle(), string(buffer.Bytes()))
 }
 
 func Users(api *slack.Client) (map[string]string, error) {
