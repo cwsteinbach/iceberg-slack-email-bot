@@ -27,32 +27,34 @@ func DigestMessage() string {
 	return fmt.Sprintf("Daily digest sent with the title: `%s`", DigestTitle())
 }
 
-func RunDailyDigest(config *Config) {
-	if config.From == "" || config.To == "" || config.SendgridToken == "" {
+func RunDailyDigest(c *Config) string {
+	if c.From == "" || c.To == "" || c.SendgridToken == "" {
 		log.Println("")
 	}
 
-	api := slack.New(config.SlackAppToken)
+	// Initialize slack api
+	api := slack.New(c.SlackAppToken)
 
+	// Fetch user list
 	userList, err := Users(api)
 	if err != nil {
-		log.Fatal(err.Error())
-		return
+		log.Println("Failed to fetch the user list: " + err.Error())
+		return "Failed to fetch the user list: " + err.Error()
 	}
 
+	// Fetch channels
 	pm := &slack.GetConversationsParameters{
 		ExcludeArchived: "true",
 		Limit: 1000,
 	}
-
 	channels, _, err := api.GetConversations(pm)
 	if err != nil {
-		log.Fatal(err.Error())
-		return
+		log.Println("Failed to fetch the user list: " + err.Error())
+		return "Failed to fetch the user list: " + err.Error()
 	}
 
+	// Construct conversation history html content
 	buffer := bytes.NewBuffer(make([]byte, 0, initialNumBufSize))
-
 	for _, channel := range channels {
 		if channel.Name == "daily-digest" {
 			continue
@@ -67,7 +69,7 @@ func RunDailyDigest(config *Config) {
 
 		history, err := api.GetConversationHistory(ch)
 		if err != nil {
-			log.Println("failed to get conversation history: ", channel.Name)
+			log.Println("Failed to get conversation history: ", channel.Name)
 		}
 		if len(history.Messages) > 0 {
 			buffer.WriteString(fmt.Sprintf("<h3><u>#%s</u></h3>", channel.Name))
@@ -80,8 +82,9 @@ func RunDailyDigest(config *Config) {
 			}
 		}
 	}
-	log.Println(string(buffer.Bytes()))
-	SendGridEmail(config, DigestTitle(), string(buffer.Bytes()))
+
+	// Send html content to mailing list
+	return SendGridEmail(c, DigestTitle(), string(buffer.Bytes()))
 }
 
 func Users(api *slack.Client) (map[string]string, error) {
@@ -104,20 +107,24 @@ func ReplaceMentionUser(userList map[string]string, text string) string {
 	return msg
 }
 
-func SendGridEmail(c *Config, subject string, htmlContent string) {
+func SendGridEmail(c *Config, subject string, htmlContent string) string {
 	from := mail.NewEmail("Pinot Slack Email Digest", c.From)
 	client := sendgrid.NewSendClient(c.SendgridToken)
-	toMails := strings.Split(c.To, ",")
-	for _, toMail := range toMails {
-		to := mail.NewEmail("Apache Pinot Dev", toMail)
-		message := mail.NewSingleEmail(from, subject, to, htmlContent, htmlContent)
-		response, err := client.Send(message)
-		if err != nil {
-			log.Println(err)
-		} else {
-			log.Println(response.StatusCode)
-			log.Println(response.Body)
-			log.Println(response.Headers)
-		}
+	to := mail.NewEmail("Apache Pinot Dev", c.To)
+	message := mail.NewSingleEmail(from, subject, to, htmlContent, htmlContent)
+	response, err := client.Send(message)
+	if err != nil {
+		log.Println("Failed to send the mail via Sendgrid:  " + err.Error())
+		return "Failed to send mail via Sendgrid: " + err.Error()
+	}
+
+	if response.StatusCode >= 200 && response.StatusCode <= 204 {
+		return DigestMessage()
+	} else {
+		msg := fmt.Sprintf("Failed to send the mail via Sendgrid\n")
+		msg += fmt.Sprintf("StatusCode: `%d`\n", response.StatusCode)
+		msg += fmt.Sprintf("Body: ```%s```", response.Body)
+		log.Println(msg)
+		return msg
 	}
 }

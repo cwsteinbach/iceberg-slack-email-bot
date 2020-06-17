@@ -68,6 +68,7 @@ func main() {
 	b.Brain.RegisterHandler(b.HandleDailyDigestEvent)
 	b.Brain.RegisterHandler(b.HandleHTTP)
 	b.Respond("daily-digest", b.DailyDigest)
+	b.Respond("config", b.PrintConfig)
 	b.Respond("ping", Pong)
 	b.Respond("time", Time)
 
@@ -79,27 +80,24 @@ func main() {
 }
 
 func (b *PinotBot) HandleDailyDigestEvent(evt DailyDigestEvent) {
-	RunDailyDigest(b.Config)
-	b.Say("daily-digest", DigestMessage())
+	responseMsg := RunDailyDigest(b.Config)
+	b.Say("daily-digest", responseMsg)
 }
 
 func (b *PinotBot) DailyDigest(msg joe.Message) error {
-	RunDailyDigest(b.Config)
-	msg.Respond(DigestMessage())
+	responseMsg := RunDailyDigest(b.Config)
+	msg.Respond(responseMsg)
 	return nil
 }
 
-func Time(msg joe.Message) error {
-	loc, _ := time.LoadLocation("America/Los_Angeles")
-	t := time.Now()
-	timeMsg := "Machine local time: `" + fmt.Sprint(t) + "`\n"
-	timeMsg += "Machine local time (in PDT): `" + fmt.Sprint(t.In(loc)) + "`"
-	msg.Respond(timeMsg)
-	return nil
-}
-
-func Pong(msg joe.Message) error {
-	msg.Respond("PONG")
+func (b *PinotBot) PrintConfig(msg joe.Message) error {
+	fmt.Println("printconfig")
+	configMsg := fmt.Sprintf("From: `%s`\n", b.Config.From)
+	configMsg += fmt.Sprintf("To: `%s`\n", b.Config.To)
+	configMsg += fmt.Sprintf("SlackAppToken: `%s`\n", b.Config.SlackAppToken)
+	configMsg += fmt.Sprintf("SlackBotUserToken: `%s`\n", b.Config.SlackBotUserToken)
+	configMsg += fmt.Sprintf("SendgridToken: `%s`", b.Config.SendgridToken)
+	msg.Respond(configMsg)
 	return nil
 }
 
@@ -107,4 +105,18 @@ func (b *PinotBot) HandleHTTP(c context.Context, r joehttp.RequestEvent) {
 	if r.URL.Path == "/" {
 		b.Say("daily-digest", "Pinot bot is running..")
 	}
+}
+
+func Time(msg joe.Message) error {
+	loc, _ := time.LoadLocation("America/Los_Angeles")
+	t := time.Now()
+	timeMsg := fmt.Sprintf("Machine local time: `%s`\n", fmt.Sprint(t))
+	timeMsg += fmt.Sprintf("Machine local time (in PDT): `%s`", fmt.Sprint(t.In(loc)))
+	msg.Respond(timeMsg)
+	return nil
+}
+
+func Pong(msg joe.Message) error {
+	msg.Respond("PONG")
+	return nil
 }
