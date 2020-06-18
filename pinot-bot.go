@@ -38,7 +38,7 @@ func NewConfig() (*Config, error) {
 		SendgridToken:     os.Getenv("SENDGRID_TOKEN"),
 		Port:              os.Getenv("PORT"),
 	}
-	log.Println(config)
+	fmt.Println(config)
 	if config.Port == "" {
 		config.Port = "80"
 	}

@@ -23,13 +23,10 @@ func DigestTitle() string {
 	return fmt.Sprintf("Apache Pinot Daily Email Digest (%s)", t.Format("2006-01-02"))
 }
 
-func DigestMessage() string {
-	return fmt.Sprintf("Daily digest sent with the title: `%s`", DigestTitle())
-}
-
 func RunDailyDigest(c *Config) string {
 	if c.From == "" || c.To == "" || c.SendgridToken == "" {
-		log.Println("")
+		fmt.Println("Some config is missing. Please double check `FROM/TO/SENDGRID_TOKEN`.")
+		return "Some config is missing. Please double check `FROM/TO/SENDGRID_TOKEN`."
 	}
 
 	// Initialize slack api
@@ -38,7 +35,7 @@ func RunDailyDigest(c *Config) string {
 	// Fetch user list
 	userList, err := Users(api)
 	if err != nil {
-		log.Println("Failed to fetch the user list: " + err.Error())
+		fmt.Println("Failed to fetch the user list: " + err.Error())
 		return "Failed to fetch the user list: " + err.Error()
 	}
 
@@ -49,7 +46,7 @@ func RunDailyDigest(c *Config) string {
 	}
 	channels, _, err := api.GetConversations(pm)
 	if err != nil {
-		log.Println("Failed to fetch the user list: " + err.Error())
+		fmt.Println("Failed to fetch the user list: " + err.Error())
 		return "Failed to fetch the user list: " + err.Error()
 	}
 
@@ -114,17 +111,21 @@ func SendGridEmail(c *Config, subject string, htmlContent string) string {
 	message := mail.NewSingleEmail(from, subject, to, htmlContent, htmlContent)
 	response, err := client.Send(message)
 	if err != nil {
-		log.Println("Failed to send the mail via Sendgrid:  " + err.Error())
+		fmt.Println("Failed to send the mail via Sendgrid:  " + err.Error())
 		return "Failed to send mail via Sendgrid: " + err.Error()
 	}
 
+
 	if response.StatusCode >= 200 && response.StatusCode <= 204 {
-		return DigestMessage()
+		msg := fmt.Sprintf("Daily digest sent with the title: `%s`\n", DigestTitle())
+		msg += fmt.Sprintf("StatusCode: `%d`\n", response.StatusCode)
+		fmt.Println(msg)
+		return msg
 	} else {
 		msg := fmt.Sprintf("Failed to send the mail via Sendgrid\n")
 		msg += fmt.Sprintf("StatusCode: `%d`\n", response.StatusCode)
 		msg += fmt.Sprintf("Body: ```%s```", response.Body)
-		log.Println(msg)
+		fmt.Println(msg)
 		return msg
 	}
 }
