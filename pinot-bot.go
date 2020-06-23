@@ -103,7 +103,7 @@ func (b *PinotBot) PrintConfig(msg joe.Message) error {
 
 func (b *PinotBot) HandleHTTP(c context.Context, r joehttp.RequestEvent) {
 	if r.URL.Path == "/" {
-		b.Say("daily-digest", "Pinot bot is running..")
+		fmt.Println("Pinot bot is running..")
 	}
 }
 
