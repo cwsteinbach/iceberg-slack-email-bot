@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 )
-import "github.com/nlopes/slack"
+import "github.com/slack-go/slack"
 import "github.com/sendgrid/sendgrid-go"
 
 var re = regexp.MustCompile(`(?m)<@(\w+)>`)
@@ -76,6 +76,23 @@ func RunDailyDigest(c *Config) string {
 				buffer.WriteString(fmt.Sprintf("<strong>%s: </strong>", userList[fmt.Sprintf("<@%s>", m.User)]))
 				buffer.WriteString(ReplaceMentionUser(userList, m.Text))
 				buffer.WriteString("<br>")
+
+				repliesParam := &slack.GetConversationRepliesParameters{
+					ChannelID: channel.ID,
+					Timestamp: m.Timestamp,
+					Limit: 1000,
+				}
+
+				replies, _, _, err := api.GetConversationReplies(repliesParam)
+				if err != nil {
+					log.Println("Failed to get conversation replies: ", channel.Name)
+				}
+				for j := 1; j < len(replies); j++ {
+					r := replies[j].Msg
+					buffer.WriteString(fmt.Sprintf("&ensp;&ensp;<strong>%s: </strong>", userList[fmt.Sprintf("<@%s>", r.User)]))
+					buffer.WriteString(ReplaceMentionUser(userList, r.Text))
+					buffer.WriteString("<br>")
+				}
 			}
 		}
 	}
