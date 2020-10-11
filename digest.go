@@ -8,6 +8,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"crypto/tls"
+	"gopkg.in/gomail.v2"
 )
 import "github.com/slack-go/slack"
 import "github.com/sendgrid/sendgrid-go"
@@ -97,8 +99,21 @@ func RunDailyDigest(c *Config) string {
 		}
 	}
 
-	// Send html content to mailing list
-	return SendGridEmail(c, DigestTitle(), string(buffer.Bytes()))
+	htmlContent := string(buffer.Bytes())
+	if len(htmlContent) <= 0 {
+		fmt.Println("Not sending a mail because the content size is zero")
+		return "Not sending a mail because the content size is zero"
+	}
+
+	if strings.ToUpper(c.MailClientType) == "GMAIL" {
+		return SendEmailViaGmail(c, DigestTitle(), htmlContent)
+	} else if strings.ToUpper(c.MailClientType) == "SENDGRID" {
+		// Send html content to mailing list
+		return SendEmailViaSendGrid(c, DigestTitle(), htmlContent)
+	} else {
+		log.Println("Invalid mail client type: ", c.MailClientType)
+		return "Invalid mail client type: " + c.MailClientType
+	}
 }
 
 func Users(api *slack.Client) (map[string]string, error) {
@@ -121,7 +136,29 @@ func ReplaceMentionUser(userList map[string]string, text string) string {
 	return msg
 }
 
-func SendGridEmail(c *Config, subject string, htmlContent string) string {
+func SendEmailViaGmail(c *Config, subject string, htmlContent string) string {
+	d := gomail.NewDialer("smtp.gmail.com", 587, c.GmailAccount, c.GmailAppPassword)
+	d.TLSConfig = &tls.Config{InsecureSkipVerify: true}
+
+	// Send emails using d.
+	m := gomail.NewMessage()
+	m.SetAddressHeader("From", c.From, "Pinot Slack Email Digest")
+	m.SetHeader("To", c.To)
+	m.SetHeader("Subject", subject)
+	m.SetBody("text/html", htmlContent)
+
+	err := d.DialAndSend(m)
+	if err != nil {
+		fmt.Println("Failed to send the mail via Sendgrid:  " + err.Error())
+		return "Failed to send mail via Sendgrid: " + err.Error()
+	} else {
+		msg := fmt.Sprintf("Daily digest successfully sent with the title: `%s`\n", DigestTitle())
+		fmt.Println(msg)
+		return msg
+	}
+}
+
+func SendEmailViaSendGrid(c *Config, subject string, htmlContent string) string {
 	from := mail.NewEmail("Pinot Slack Email Digest", c.From)
 	client := sendgrid.NewSendClient(c.SendgridToken)
 	to := mail.NewEmail("Apache Pinot Dev", c.To)
@@ -131,7 +168,6 @@ func SendGridEmail(c *Config, subject string, htmlContent string) string {
 		fmt.Println("Failed to send the mail via Sendgrid:  " + err.Error())
 		return "Failed to send mail via Sendgrid: " + err.Error()
 	}
-
 
 	if response.StatusCode >= 200 && response.StatusCode <= 204 {
 		msg := fmt.Sprintf("Daily digest sent with the title: `%s`\n", DigestTitle())

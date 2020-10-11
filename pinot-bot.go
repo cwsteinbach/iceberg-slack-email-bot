@@ -27,6 +27,9 @@ type Config struct {
 	To                string
 	SendgridToken     string
 	Port              string
+	GmailAccount      string
+	GmailAppPassword  string
+	MailClientType  string
 }
 
 func NewConfig() (*Config, error) {
@@ -37,6 +40,9 @@ func NewConfig() (*Config, error) {
 		To:                os.Getenv("TO"),
 		SendgridToken:     os.Getenv("SENDGRID_TOKEN"),
 		Port:              os.Getenv("PORT"),
+		GmailAccount:      os.Getenv("GMAIL_ACCOUNT"),
+		GmailAppPassword:  os.Getenv("GMAIL_APP_PASSWORD"),
+		MailClientType:   os.Getenv("MAIL_CLIENT_TYPE"),
 	}
 	fmt.Println(config)
 	if config.Port == "" {
@@ -96,7 +102,9 @@ func (b *PinotBot) PrintConfig(msg joe.Message) error {
 	configMsg += fmt.Sprintf("To: `%s`\n", b.Config.To)
 	configMsg += fmt.Sprintf("SlackAppToken: `%s`\n", b.Config.SlackAppToken)
 	configMsg += fmt.Sprintf("SlackBotUserToken: `%s`\n", b.Config.SlackBotUserToken)
-	configMsg += fmt.Sprintf("SendgridToken: `%s`", b.Config.SendgridToken)
+	configMsg += fmt.Sprintf("MailClientType: `%s`\n", b.Config.MailClientType)
+	configMsg += fmt.Sprintf("SendgridToken: `%s`\n", b.Config.SendgridToken)
+	configMsg += fmt.Sprintf("GmailAccount: `%s`", b.Config.GmailAccount)
 	msg.Respond(configMsg)
 	return nil
 }

@@ -36,3 +36,7 @@ $ docker run -p 5005:80 -e PORT=80 -e SLACK_APP_TOKEN=<slack_token> -e SLACK_BOT
 # Publish docker image to docker hub
 $ make push
 ```
+
+# Set up with Gmail Account
+1. Setup the app account by following: https://support.google.com/accounts/answer/185833?hl=en
+2. Configure `MAIL_CLIENT_TYPE=GMAIL,GMAIL_ACCOUNT=<gmail_account>,GMAIL_APP_PASSWORD=<gmail_apppassword>`
