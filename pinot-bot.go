@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-type PinotBot struct {
+type IcebergBot struct {
 	*joe.Bot
 	Config *Config
 }
@@ -21,11 +21,9 @@ type DailyDigestEvent struct {
 }
 
 type Config struct {
-	SlackAppToken     string
 	SlackBotUserToken string
 	From              string
 	To                string
-	SendgridToken     string
 	Port              string
 	GmailAccount      string
 	GmailAppPassword  string
@@ -34,15 +32,13 @@ type Config struct {
 
 func NewConfig() (*Config, error) {
 	config := &Config{
-		SlackAppToken:     os.Getenv("SLACK_APP_TOKEN"),
 		SlackBotUserToken: os.Getenv("SLACK_BOT_USER_TOKEN"),
 		From:              os.Getenv("FROM"),
 		To:                os.Getenv("TO"),
-		SendgridToken:     os.Getenv("SENDGRID_TOKEN"),
 		Port:              os.Getenv("PORT"),
 		GmailAccount:      os.Getenv("GMAIL_ACCOUNT"),
 		GmailAppPassword:  os.Getenv("GMAIL_APP_PASSWORD"),
-		MailClientType:   os.Getenv("MAIL_CLIENT_TYPE"),
+		MailClientType:    os.Getenv("MAIL_CLIENT_TYPE"),
 	}
 	fmt.Println(config)
 	if config.Port == "" {
@@ -59,14 +55,15 @@ func main() {
 	modules := []joe.Module {
 		joehttp.Server(":" + config.Port),
 		// Schedule the daily digest cron job at 2:00:00 AM (UTC)
-		cron.ScheduleEvent("0 0 2 * * *", DailyDigestEvent{}),
+		//cron.ScheduleEvent("0 0 2 * * *", DailyDigestEvent{}),
+		cron.ScheduleEvent("0 * * * * *", DailyDigestEvent{}),
 	}
-	if config.SlackAppToken != "" && config.SlackBotUserToken != ""  {
+	if config.SlackBotUserToken != ""  {
 		modules = append(modules, slack.Adapter(config.SlackBotUserToken))
 	}
 
-	b := &PinotBot{
-		Bot: joe.New("pinot-bot", modules...),
+	b := &IcebergBot{
+		Bot: joe.New("iceberg-bot", modules...),
 		Config: config,
 	}
 
@@ -78,40 +75,38 @@ func main() {
 	b.Respond("ping", Pong)
 	b.Respond("time", Time)
 
-	b.Say("daily-digest", "Pinot bot is starting..")
+	b.Say("daily-digest", "Iceberg archive bot is starting..")
 	err = b.Run()
 	if err != nil {
 		b.Logger.Fatal(err.Error())
 	}
 }
 
-func (b *PinotBot) HandleDailyDigestEvent(evt DailyDigestEvent) {
+func (b *IcebergBot) HandleDailyDigestEvent(evt DailyDigestEvent) {
 	responseMsg := RunDailyDigest(b.Config)
 	b.Say("daily-digest", responseMsg)
 }
 
-func (b *PinotBot) DailyDigest(msg joe.Message) error {
+func (b *IcebergBot) DailyDigest(msg joe.Message) error {
 	responseMsg := RunDailyDigest(b.Config)
 	msg.Respond(responseMsg)
 	return nil
 }
 
-func (b *PinotBot) PrintConfig(msg joe.Message) error {
+func (b *IcebergBot) PrintConfig(msg joe.Message) error {
 	fmt.Println("printconfig")
 	configMsg := fmt.Sprintf("From: `%s`\n", b.Config.From)
 	configMsg += fmt.Sprintf("To: `%s`\n", b.Config.To)
-	configMsg += fmt.Sprintf("SlackAppToken: `%s`\n", b.Config.SlackAppToken)
 	configMsg += fmt.Sprintf("SlackBotUserToken: `%s`\n", b.Config.SlackBotUserToken)
 	configMsg += fmt.Sprintf("MailClientType: `%s`\n", b.Config.MailClientType)
-	configMsg += fmt.Sprintf("SendgridToken: `%s`\n", b.Config.SendgridToken)
 	configMsg += fmt.Sprintf("GmailAccount: `%s`", b.Config.GmailAccount)
 	msg.Respond(configMsg)
 	return nil
 }
 
-func (b *PinotBot) HandleHTTP(c context.Context, r joehttp.RequestEvent) {
+func (b *IcebergBot) HandleHTTP(c context.Context, r joehttp.RequestEvent) {
 	if r.URL.Path == "/" {
-		fmt.Println("Pinot bot is running..")
+		fmt.Println("Iceberg archive bot is running..")
 	}
 }
 

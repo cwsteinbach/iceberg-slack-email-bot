@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/sendgrid/sendgrid-go/helpers/mail"
 	"log"
 	"regexp"
 	"strings"
@@ -12,7 +11,6 @@ import (
 	"gopkg.in/gomail.v2"
 )
 import "github.com/slack-go/slack"
-import "github.com/sendgrid/sendgrid-go"
 
 var re = regexp.MustCompile(`(?m)<@(\w+)>`)
 
@@ -22,17 +20,17 @@ func DigestTitle() string {
 	loc, _ := time.LoadLocation("America/Los_Angeles")
 	t := time.Now()
 	t = t.In(loc)
-	return fmt.Sprintf("Apache Pinot Daily Email Digest (%s)", t.Format("2006-01-02"))
+	return fmt.Sprintf("Apache Iceberg Daily Slack Digest (%s)", t.Format("2006-01-02"))
 }
 
 func RunDailyDigest(c *Config) string {
-	if c.From == "" || c.To == "" || c.SendgridToken == "" {
-		fmt.Println("Some config is missing. Please double check `FROM/TO/SENDGRID_TOKEN`.")
-		return "Some config is missing. Please double check `FROM/TO/SENDGRID_TOKEN`."
+	if c.From == "" || c.To == "" {
+		fmt.Println("Some config is missing. Please double check `FROM/TO`.")
+		return "Some config is missing. Please double check `FROM/TO`."
 	}
 
 	// Initialize slack api
-	api := slack.New(c.SlackAppToken)
+	api := slack.New(c.SlackBotUserToken, slack.OptionDebug(true))
 
 	// Fetch user list
 	userList, err := Users(api)
@@ -43,13 +41,13 @@ func RunDailyDigest(c *Config) string {
 
 	// Fetch channels
 	pm := &slack.GetConversationsParameters{
-		ExcludeArchived: "true",
+		ExcludeArchived: true,
 		Limit: 1000,
 	}
 	channels, _, err := api.GetConversations(pm)
 	if err != nil {
-		fmt.Println("Failed to fetch the user list: " + err.Error())
-		return "Failed to fetch the user list: " + err.Error()
+		fmt.Println("Failed to fetch the channels list: " + err.Error())
+		return "Failed to fetch the channels list: " + err.Error()
 	}
 
 	// Construct conversation history html content
@@ -107,9 +105,6 @@ func RunDailyDigest(c *Config) string {
 
 	if strings.ToUpper(c.MailClientType) == "GMAIL" {
 		return SendEmailViaGmail(c, DigestTitle(), htmlContent)
-	} else if strings.ToUpper(c.MailClientType) == "SENDGRID" {
-		// Send html content to mailing list
-		return SendEmailViaSendGrid(c, DigestTitle(), htmlContent)
 	} else {
 		log.Println("Invalid mail client type: ", c.MailClientType)
 		return "Invalid mail client type: " + c.MailClientType
@@ -142,15 +137,15 @@ func SendEmailViaGmail(c *Config, subject string, htmlContent string) string {
 
 	// Send emails using d.
 	m := gomail.NewMessage()
-	m.SetAddressHeader("From", c.From, "Pinot Slack Email Digest")
+	m.SetAddressHeader("From", c.From, "Iceberg Slack Email Digest")
 	m.SetHeader("To", c.To)
 	m.SetHeader("Subject", subject)
 	m.SetBody("text/html", htmlContent)
 
 	err := d.DialAndSend(m)
 	if err != nil {
-		fmt.Println("Failed to send the mail via Sendgrid:  " + err.Error())
-		return "Failed to send mail via Sendgrid: " + err.Error()
+		fmt.Println("Failed to send the mail via Gmail:  " + err.Error())
+		return "Failed to send mail via Gmail: " + err.Error()
 	} else {
 		msg := fmt.Sprintf("Daily digest successfully sent with the title: `%s`\n", DigestTitle())
 		fmt.Println(msg)
@@ -158,27 +153,3 @@ func SendEmailViaGmail(c *Config, subject string, htmlContent string) string {
 	}
 }
 
-func SendEmailViaSendGrid(c *Config, subject string, htmlContent string) string {
-	from := mail.NewEmail("Pinot Slack Email Digest", c.From)
-	client := sendgrid.NewSendClient(c.SendgridToken)
-	to := mail.NewEmail("Apache Pinot Dev", c.To)
-	message := mail.NewSingleEmail(from, subject, to, htmlContent, htmlContent)
-	response, err := client.Send(message)
-	if err != nil {
-		fmt.Println("Failed to send the mail via Sendgrid:  " + err.Error())
-		return "Failed to send mail via Sendgrid: " + err.Error()
-	}
-
-	if response.StatusCode >= 200 && response.StatusCode <= 204 {
-		msg := fmt.Sprintf("Daily digest sent with the title: `%s`\n", DigestTitle())
-		msg += fmt.Sprintf("StatusCode: `%d`\n", response.StatusCode)
-		fmt.Println(msg)
-		return msg
-	} else {
-		msg := fmt.Sprintf("Failed to send the mail via Sendgrid\n")
-		msg += fmt.Sprintf("StatusCode: `%d`\n", response.StatusCode)
-		msg += fmt.Sprintf("Body: ```%s```", response.Body)
-		fmt.Println(msg)
-		return msg
-	}
-}
