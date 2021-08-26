@@ -1,8 +1,9 @@
-Pinot Bot
+Iceberg Slack Email Bot
 ====
-![Go](https://github.com/snleee/pinot-bot/workflows/Go/badge.svg)
 
-Simple Pinot Bot for Apache Pinot Slack Workspace.
+Note: This is a fork of https://github.com/snleee/pinot-bot
+
+Simple Iceberg Bot for Apache Iceberg Slack Workspace.
 
 # Build and run locally
 ```
